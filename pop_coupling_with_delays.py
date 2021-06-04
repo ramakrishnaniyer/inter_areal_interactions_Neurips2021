@@ -126,7 +126,7 @@ class PC_sandbox:
                 
                 #tmp_binned_spt_perm1 = np.random.permutation(tmp_binned_spt) #(this line had the wrong shuffle control, each neuron in the shuffled data was still looking at the same input grating).
                 
-#                 #Making a change on May 20, 2021 after discussion with SM
+#                 #Making a change on May 20, 2021 after discussion
 #                 tmp_binned_spt_perm = np.zeros(tmp_binned_spt.shape)
 #                 for cc in range(tmp_binned_spt_perm.shape[-1]):
 #                     tmp_binned_spt_perm[:,:,cc] = np.random.permutation(tmp_binned_spt[:,:,cc])
@@ -203,10 +203,10 @@ class PC_sandbox:
 
     def make_stim_input_matrix(self):
         if 'combined' in self.stim_name:
-            stim_arr_fname =  '/allen/programs/braintv/workgroups/cortexmodels/rami/Research/VC_NP_sklearn_mod/gabor_filtered_static_gratings_stim_combined_with_spont.npy' 
+            stim_arr_fname =  'gabor_filtered_static_gratings_stim_combined_with_spont.npy' 
             self.X_stim = self.stim_scale*np.load(stim_arr_fname)
         else:
-            stim_arr_fname =  '/allen/programs/braintv/workgroups/cortexmodels/rami/Research/VC_NP_sklearn/gabor_filtered_'+self.stim_name+'_stim_corr.npy'
+            stim_arr_fname =  'gabor_filtered_'+self.stim_name+'_stim_corr.npy'
             self.X_stim = np.array([]).reshape(0,self.tot_fr_df.shape[1])
             if self.stim_scale != 0:
                 stim_durn = self.bin_end - self.bin_start
