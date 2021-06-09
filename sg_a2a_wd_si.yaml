@@ -1,0 +1,13 @@
+data_dir : './data/NP_VC_data/'   #directory which holds NWB data files
+frac : 0.5
+stim_name :  'static_gratings'
+prs_savedir : './params_dir/save_prs_full_with_delay_and_self_intrn'    #directory to save model parameters
+
+cstr_scale : 1
+fit_type : 'all_to_all'
+glm_method : 'lasso'
+
+bin_start : 0.0 
+bin_end : 0.25
+bin_dt : 0.01
+
