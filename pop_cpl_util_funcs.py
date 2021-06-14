@@ -3,10 +3,10 @@ import pandas as pd
 
 from sklearn.preprocessing import scale 
 from sklearn import model_selection
-from sklearn.decomposition import PCA
+#from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
-from sklearn.cross_decomposition import PLSRegression, PLSSVD
-from sklearn.metrics import mean_squared_error
+#from sklearn.cross_decomposition import PLSRegression, PLSSVD
+#from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LassoCV, Lasso, LinearRegression
 from sklearn.model_selection import KFold, cross_val_score, cross_val_predict
 
@@ -91,31 +91,6 @@ def load_stimulus_filtered_array(stim_arr_fname, stim_durn, dt):
 
     return stim_filt_arr_upsmp
 
-def LSTM_fit(X, y, split_frac=0.5, epoch=50, batch_size=96, nhidden_neurons=2, loss='mae', optimizer='adam'):
-    # Split into training and test sets
-    X_train, X_test , y_train, y_test = model_selection.train_test_split(X, y, test_size=split_frac, random_state=1)
-    
-    # reshape the data
-    X_train = X_train.reshape(X_train.shape[0], 1, X_train.shape[1])
-    X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1])
-
-    print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    
-    # design network
-    model = Sequential()
-    model.add(LSTM(nhidden_neurons, input_shape=(X_train.shape[1], X_train.shape[2])))
-    model.add(Dense(1))
-    model.compile(loss=loss, optimizer=optimizer)
-    
-    # fit network
-    history = model.fit(X_train, y_train, epochs=epoch, batch_size=batch_size, validation_data=(X_test, y_test), verbose=2, shuffle=False)
-    # plot history
-    plt.plot(history.history['loss'], label='train')
-    plt.plot(history.history['val_loss'], label='test')
-    plt.legend()
-    plt.show()
-    
-
 def fit_lasso(X, y, split_frac = 0.5, cv = 10):
     
     # Split into training and test sets
@@ -137,8 +112,6 @@ def fit_lasso(X, y, split_frac = 0.5, cv = 10):
     nnz_coef = len(lasso.coef_[np.abs(lasso.coef_>1e-10)])
 
     return lassocv.alpha_, train_corr, test_corr, lasso.coef_, nnz_coef, mse
-
-
 
 def fit_lasso_on_test(X, y, split_frac = 0.5, cv = 10):
     
