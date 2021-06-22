@@ -8,7 +8,7 @@ import argparse
 
 from allensdk.brain_observatory.ecephys.ecephys_session import EcephysSession
 
-from pop_cpl_util_funcs import load_stimulus_filtered_array, fit_lasso, obtain_and_bin_spt_for_given_cstr, fit_lasso_on_test, LSTM_fit
+from pop_cpl_util_funcs import load_stimulus_filtered_array, fit_lasso, obtain_and_bin_spt_for_given_cstr, fit_lasso_on_test
 
 class PC_sandbox:
     def __init__(self, yaml_fname = 'sg_a2a_wd_si.yaml', expt_id = 715093703, \
