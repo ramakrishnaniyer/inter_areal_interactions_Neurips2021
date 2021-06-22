@@ -12,7 +12,7 @@ from pop_cpl_util_funcs import load_stimulus_filtered_array, fit_lasso, obtain_a
 
 class PC_sandbox:
     def __init__(self, yaml_fname = 'sg_a2a_wd_si.yaml', expt_id = 715093703, \
-                 cstr = 'VISp', unit_id = 950930407, stim_scale = 1, flag_del = False, flag_inst_and_del = False, flag_fit_on_test = False, flag_permute = False):
+                 cstr = 'VISp', unit_id = 950930407, stim_scale = 1, flag_del = False, flag_inst_and_del = False, flag_fit_on_test = False, flag_permute = False, permute_type = 'stim_rnd'):
         
         config = yaml.load(open(yaml_fname, 'r'))
         self.expt_id = str(expt_id)
@@ -20,7 +20,7 @@ class PC_sandbox:
         self.nwb_path = os.path.join(self.data_dir,'ecephys_session_'+ self.expt_id + '.nwb')
         self.yaml_fname = yaml_fname
         
-        self.cstr = cstr 
+        self.cstr = cstr
         self.unit_id = unit_id
 
         self.frac = config['frac']
@@ -32,6 +32,7 @@ class PC_sandbox:
         self.flag_inst_and_del = flag_inst_and_del
         self.flag_fit_on_test = flag_fit_on_test
         self.flag_permute = flag_permute
+        self.permute_type = permute_type
                 
         self.fit_type = config['fit_type']
         self.glm_method = config['glm_method']
@@ -54,8 +55,7 @@ class PC_sandbox:
         if not os.path.isfile(self.prs_savename):
             ##### MAIN STEPS
             self.load_session_and_get_fr_df()
-            
-            #self.make_output_vector()
+           
             self.make_cstr_input_matrix()
             self.make_stim_input_matrix()
             
@@ -95,10 +95,7 @@ class PC_sandbox:
             spt_df1.set_index('unit_id',inplace=True)
             
             stim_epochs = session.get_stimulus_epochs()
-            if 'combined' in self.stim_name:
-                spont_epochs = stim_epochs[(stim_epochs.stimulus_name=='spontaneous')|(stim_epochs.stimulus_name=='static_gratings')]
-            else:
-                spont_epochs = stim_epochs[stim_epochs.stimulus_name=='spontaneous']
+            spont_epochs = stim_epochs[stim_epochs.stimulus_name=='spontaneous']
 
             stt_l = spont_epochs.start_time.values
             endt_l = spont_epochs.stop_time.values
@@ -118,41 +115,31 @@ class PC_sandbox:
             self.y = self.tot_fr_df.T[self.unit_id].values.astype(float)
             
             if self.flag_permute == True:
-                print('Permuting trials')
-                
-                ### Trying permutation without caring about stimulus condition on Dec 1, 2020
-                
-                #tmp_binned_spt_perm = self.permute_fr_arr(tmp_binned_spt) #(this line orig with tracking stim cond)
-                
-                #tmp_binned_spt_perm1 = np.random.permutation(tmp_binned_spt) #(this line had the wrong shuffle control, each neuron in the shuffled data was still looking at the same input grating).
-                
-#                 #Making a change on May 20, 2021 after discussion
-#                 tmp_binned_spt_perm = np.zeros(tmp_binned_spt.shape)
-#                 for cc in range(tmp_binned_spt_perm.shape[-1]):
-#                     tmp_binned_spt_perm[:,:,cc] = np.random.permutation(tmp_binned_spt[:,:,cc])
-                    
-#                 ####
-                
-#                 tot_arr_fr_all_perm = np.reshape(tmp_binned_spt_perm, (num_pres*num_bins,num_cells))  
-
-                ### Making a change on May 26, 2021 to try an extreme version of shuffling
-                tot_arr_fr_all_perm_pre = np.reshape(tmp_binned_spt.values, (num_pres*num_bins,num_cells))
-                tot_arr_fr_all_perm = np.zeros(tot_arr_fr_all_perm_pre.shape)
-                for nn in range(tot_arr_fr_all_perm.shape[1]):
-                    tot_arr_fr_all_perm[:,nn] = np.random.permutation(tot_arr_fr_all_perm_pre[:,nn])
-                
+                                
+                if self.permute_type == 'trial_rnd':
+                    print('Permuting trials')
+                    tmp_binned_spt_perm = self.permute_fr_arr(tmp_binned_spt) #(permute trials for each stim cond)
+                elif self.permute_type == 'stim_rnd':
+                    print('Permuting order of presentations for each neuron independently')
+                    tmp_binned_spt_perm = np.zeros(tmp_binned_spt.shape)
+                    for cc in range(tmp_binned_spt_perm.shape[-1]):
+                        tmp_binned_spt_perm[:,:,cc] = np.random.permutation(tmp_binned_spt[:,:,cc])                
+                tot_arr_fr_all_perm = np.reshape(tmp_binned_spt_perm, (num_pres*num_bins,num_cells))  
+                elif self.permute_type == 'extr_rnd':
+                    print('Permuting presentations and within trial bins for each neuron independently')
+                    tot_arr_fr_all_perm_pre = np.reshape(tmp_binned_spt.values, (num_pres*num_bins,num_cells))
+                    tot_arr_fr_all_perm = np.zeros(tot_arr_fr_all_perm_pre.shape)
+                    for nn in range(tot_arr_fr_all_perm.shape[1]):
+                        tot_arr_fr_all_perm[:,nn] = np.random.permutation(tot_arr_fr_all_perm_pre[:,nn])
                 
                 self.tot_fr_df = pd.DataFrame(tot_arr_fr_all_perm.T, index = session.units.index.values)
-                print('Shape of permuted FR array is :', self.tot_fr_df.shape)
-                #self.y = self.tot_fr_df.T[self.unit_id].values.astype(float)
-                
+                print('Shape of permuted FR array is :', self.tot_fr_df.shape)                
             
             del tmp_binned_spt      
 
         del session
         
     def permute_fr_arr(self, binned_spt):
-        print('Permuting trials using function')
         stim_cond_id_list = self.stim_table.stimulus_condition_id.unique()
         tmp_binned_spt_perm = np.zeros(binned_spt.shape)
         for cc in range(tmp_binned_spt_perm.shape[-1]):
@@ -162,14 +149,14 @@ class PC_sandbox:
                 
         return tmp_binned_spt_perm
         
-       
-    #def make_output_vector(self):
-    #    self.y = self.tot_fr_df.T[self.unit_id].values.astype(float)
 
     def make_cstr_input_matrix(self):
+        
         self.X_cstr = np.array([]).reshape(self.tot_fr_df.shape[1],0)
+        
         if self.cstr_scale != 0:
             df_X = self.tot_fr_df.T.copy()
+            
             if self.fit_type == 'all_to_all':
                 
                 if self.flag_del == False:
@@ -177,21 +164,13 @@ class PC_sandbox:
                     self.X_cstr = self.cstr_scale*np.array(df_X)
                 else:
                     
-                    #To add delay ONLY TO CSTR, not STIM (modified on Jul 2, 2020)
-                    #Not sure why I zeroed out self activity with delay, so putting it back (modified Feb 3, 2021)
-                    #Also padding went y0 = x1 (future) instead of y1 = x0 (previous bin predicts current)
-                    #So changing padding and checking
-                    
                     num_del_pts = 1
-                    #df_X[self.unit_id] = np.zeros(self.y.shape) #(modified on Feb 3, 2021)
                     print('Max output unit FR is :', np.amax(df_X[self.unit_id].values.astype(float)))
                     self.X_cstr = self.cstr_scale*np.array(df_X)
                     
                     if self.flag_inst_and_del == False:
                         self.X_cstr = np.pad(self.X_cstr, ((num_del_pts,0),(0,0)), 'constant', constant_values = 0.)
                         self.X_cstr = self.X_cstr[:-num_del_pts,:]
-                        #self.X_cstr = np.pad(self.X_cstr, ((0,num_del_pts),(0,0)), 'constant', constant_values = 0.)
-                        #self.X_cstr = self.X_cstr[num_del_pts:,:]
                     else:
                         X_cstr_del = np.pad(self.X_cstr, ((num_del_pts,0),(0,0)), 'constant', constant_values = 0.)
                         X_cstr_del = X_cstr_del[:-num_del_pts,:]
@@ -202,15 +181,12 @@ class PC_sandbox:
         print('Cstr shape is :', self.X_cstr.shape)
 
     def make_stim_input_matrix(self):
-        if 'combined' in self.stim_name:
-            stim_arr_fname =  'gabor_filtered_static_gratings_stim_combined_with_spont.npy' 
-            self.X_stim = self.stim_scale*np.load(stim_arr_fname)
-        else:
-            stim_arr_fname =  'gabor_filtered_'+self.stim_name+'_stim_corr.npy'
-            self.X_stim = np.array([]).reshape(0,self.tot_fr_df.shape[1])
-            if self.stim_scale != 0:
-                stim_durn = self.bin_end - self.bin_start
-                self.X_stim = self.stim_scale*load_stimulus_filtered_array(stim_arr_fname, stim_durn, self.bin_dt)
+       
+        stim_arr_fname =  'gabor_filtered_'+self.stim_name+'_stim_corr.npy'
+        self.X_stim = np.array([]).reshape(0,self.tot_fr_df.shape[1])
+        if self.stim_scale != 0:
+            stim_durn = self.bin_end - self.bin_start
+            self.X_stim = self.stim_scale*load_stimulus_filtered_array(stim_arr_fname, stim_durn, self.bin_dt)
                 
         print('Stim shape is :', self.X_stim.shape)
 
@@ -256,11 +232,10 @@ if __name__ == '__main__':
 
     random.seed(9)
     
-    ## Flag for delay added on Jul 8, 2020
     flag_del = True
     flag_inst_and_del = False
-    flag_fit_on_test = True #True#False#True #False
-    flag_permute = True #True #False
+    flag_fit_on_test = False 
+    flag_permute = False
 
     # Parse arguments:
     parser = argparse.ArgumentParser(description='Number of clusters')
